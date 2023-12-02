@@ -10,8 +10,8 @@ import {
 import { useMutation } from '@apollo/client';
 import Auth from '../utils/auth';
 import { SAVE_BOOK} from '../utils/mutations';
-import {GET_ME} from '../utils/queries';
-import { saveBook, searchGoogleBooks } from '../utils/API';
+// import {GET_ME} from '../utils/queries';
+import { searchGoogleBooks } from '../utils/API';
 import { saveBookIds, getSavedBookIds } from '../utils/localStorage';
 
 const SearchBooks = () => {
@@ -23,7 +23,6 @@ const SearchBooks = () => {
   // create state to hold saved bookId values
   const [savedBookIds, setSavedBookIds] = useState(getSavedBookIds());
 
-  const [saveBook]=useMutation(SAVE_BOOK);
   // set up useEffect hook to save `savedBookIds` list to localStorage on component unmount
   // learn more here: https://reactjs.org/docs/hooks-effect.html#effects-with-cleanup
   useEffect(() => {
@@ -53,6 +52,7 @@ const SearchBooks = () => {
         title: book.volumeInfo.title,
         description: book.volumeInfo.description,
         image: book.volumeInfo.imageLinks?.thumbnail || '',
+        link: book.volumeInfo.infoLink
       }));
 
       setSearchedBooks(bookData);
@@ -61,7 +61,7 @@ const SearchBooks = () => {
       console.error(err);
     }
   };
-
+  const [saveBook]=useMutation(SAVE_BOOK);
   // create function to handle saving a book to our database
   const handleSaveBook = async (bookId) => {
     // find the book in `searchedBooks` state by the matching id
@@ -75,28 +75,17 @@ const SearchBooks = () => {
     }
 
     try {
-      await saveBook({
-        variables:{bookData:{...bookToSave}},
-        update:cache=>{
-          const data=cache.readQuery({query:GET_ME});
-          const userDataCache=data.me;
-          const savedBookCache=userDataCache.savedBooks;
-          const updatedBookCache=[...savedBookCache,bookToSave];
-          cache.writeQuery({
-            query:GET_ME,
-            data:{me:{...userDataCache,savedBooks:updatedBookCache}}
-          });
-        }
+      const {data} = await saveBook({
+        variables:{input:bookToSave}
       });
+      console.log(data);
+
+      if (!data.ok) {
+        throw new Error('something went wrong!');
+      }
+
+      // if book successfully saves to user's account, save book id to state
       setSavedBookIds([...savedBookIds, bookToSave.bookId]);
-      // const response = await saveBook(bookToSave, token);
-
-      // if (!response.ok) {
-      //   throw new Error('something went wrong!');
-      // }
-
-      // // if book successfully saves to user's account, save book id to state
-      // setSavedBookIds([...savedBookIds, bookToSave.bookId]);
     } catch (err) {
       console.error(err);
     }

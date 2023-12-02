@@ -14,6 +14,16 @@ const resolvers = {
             }
             throw new AuthenticationError('Not logged in');
         },
+        users: async () => {
+            return User.find()
+            .select('-__v -password')
+            .populate('books');
+        },
+        user: async (parent, {username}) => {
+            return User.findOne({username})
+            .select('-__v -password')
+            .populate('books');
+    },
     },
 
     Mutation: {
@@ -43,6 +53,8 @@ const resolvers = {
         },
 
         saveBook: async (parent, {bookData}, context) => {
+            console.log(context);
+            console.log(bookData);
             if (context.user){
                 const updateUser = await User.findByIdAndUpdate(
                     {_id: context.user._id},
